@@ -47,12 +47,18 @@ export default function Home() {
           Build your team weekly, win the season-long race for the FGA Cup.
         </p>
         <div className="flex gap-4">
-          <button className="bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800">
-            Create League
-          </button>
-          <button className="bg-white border px-6 py-3 rounded-lg font-semibold hover:bg-gray-50">
-            Join League
-          </button>
+          <Link
+  href="/my-leagues/create"
+  className="bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800"
+>
+  Create League
+</Link>
+          <Link
+  href="/join"
+  className="bg-white border px-6 py-3 rounded-lg font-semibold hover:bg-gray-50"
+>
+  Join League
+</Link>
         </div>
       </section>
 
