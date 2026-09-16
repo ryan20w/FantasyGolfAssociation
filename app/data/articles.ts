@@ -31,7 +31,6 @@ export function getAllArticles() {
       excerpt: data.excerpt,
       date: data.date,
       category: data.category,
-      readTime: data.readTime,
     };
   });
 

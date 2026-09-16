@@ -27,7 +27,6 @@ export function getAllArticles() {
       excerpt: data.excerpt || "",
       date: data.date || "",
       category: data.category || "General",
-      readTime: data.readTime || "3 min read",
     };
   });
 

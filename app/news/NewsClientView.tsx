@@ -6,7 +6,7 @@ import Link from 'next/link';
 export default function NewsClientView({ articles }: { articles: any[] }) {
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const categories = ["All", "Tour Update", "Strategy", "Platform Update"];
+  const categories = ["All", "Tour Update", "Power Rankings", "Platform Update", "Experts Rosters"];
 
   const filteredArticles = selectedCategory === "All" 
     ? articles 
@@ -31,21 +31,21 @@ export default function NewsClientView({ articles }: { articles: any[] }) {
           <p className="text-gray-600 mt-1">Stay up to date with tour analysis, strategy guides, and platform updates.</p>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-8">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
-                selectedCategory === cat
-                  ? "bg-black text-white"
-                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+<div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+  {categories.map((category) => (
+    <button
+      key={category}
+      onClick={() => setSelectedCategory(category)}
+      className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+        selectedCategory === category
+          ? "bg-green-600 text-white"
+          : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+      }`}
+    >
+      {category}
+    </button>
+  ))}
+</div>
 
         <div className="grid md:grid-cols-2 gap-6">
           {filteredArticles.map((article) => (

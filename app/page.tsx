@@ -26,11 +26,14 @@ export default function Home() {
             <Link href="/news" className="text-gray-600 hover:text-black">
               News
             </Link>
+            <Link href="/news" className="text-gray-600 hover:text-black">
+              Contact
+            </Link>
           </nav>
         </div>
       </header>
 
-      {/* Hero */}
+      {/* Title Stuff */}
       <section className="max-w-6xl mx-auto px-6 py-20">
         <p className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-4">
           The Premier Fantasy Golf Destination
@@ -90,7 +93,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Weekly Contests */}
+      {/* Contests */}
       <section className="max-w-6xl mx-auto px-6 pb-20">
         <h2 className="text-2xl font-bold mb-6">
           Weekly Contests

@@ -38,7 +38,6 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
         <div className="flex items-center gap-4 text-sm text-gray-500 mb-8 pb-4 border-b border-gray-100">
           <span>{article.date}</span>
           <span>•</span>
-          <span>{article.readTime}</span>
         </div>
         
         {/* Paragraph splitting logic applied here */}
