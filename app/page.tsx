@@ -26,7 +26,7 @@ export default function Home() {
             <Link href="/news" className="text-gray-600 hover:text-black">
               News
             </Link>
-            <Link href="/news" className="text-gray-600 hover:text-black">
+            <Link href="/contact" className="text-gray-600 hover:text-black">
               Contact
             </Link>
           </nav>
