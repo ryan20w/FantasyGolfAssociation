@@ -1,11 +1,33 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/app/lib/supabase';
+import { User } from '@supabase/supabase-js';
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCreateLeagueOpen, setIsCreateLeagueOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function checkUser() {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setLoading(false);
+    }
+
+    checkUser();
+
+    // Listen for real-time sign in / sign out state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -16,22 +38,31 @@ export default function Home() {
           <h1 className="text-2xl font-bold tracking-tight">
             The Fantasy Golf Association
           </h1>
-          <nav className="flex gap-6 font-medium">
-            <Link href="/" className="text-black">
-              Home
-            </Link>
-            <Link href="/my-leagues" className="text-gray-600 hover:text-black transition-colors">
-              My Leagues
-            </Link>
+          <nav className="flex items-center gap-6 font-medium">
             <Link href="/news" className="text-gray-600 hover:text-black transition-colors">
               News
             </Link>
             <Link href="/contact" className="text-gray-600 hover:text-black transition-colors">
               Contact
             </Link>
-            <Link href="/login" className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 transition-colors">
-  Sign In
-</Link>
+
+            {!loading && (
+              user ? (
+                <Link
+                  href="/profile"
+                  className="bg-black text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+                >
+                  Profile
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+                >
+                  Sign In
+                </Link>
+              )
+            )}
           </nav>
         </div>
       </header>
@@ -74,7 +105,7 @@ export default function Home() {
         </h2>
         <div className="grid md:grid-cols-3 gap-6">
           
-          <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+          <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-5 hover:shadow-md">
             <h3 className="text-xl font-bold text-gray-900 mb-2">
               Real-Time Data
             </h3>
@@ -83,7 +114,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+          <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-5 hover:shadow-md">
             <h3 className="text-xl font-bold text-gray-900 mb-2">
               Weekly Drafting
             </h3>
@@ -92,7 +123,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+          <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-5 hover:shadow-md">
             <h3 className="text-xl font-bold text-gray-900 mb-2">
               Season Points
             </h3>
@@ -109,7 +140,7 @@ export default function Home() {
         <h2 className="text-2xl font-bold text-gray-900 mb-8">
           Weekly Contests
         </h2>
-        <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md w-full flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-md w-full flex flex-col justify-between">
           <div>
             <h3 className="text-xl font-bold text-emerald-600 mb-1">
               Weekly Redrafts aren&apos;t your thing?

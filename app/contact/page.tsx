@@ -13,15 +13,15 @@ export default function ContactPage() {
             <Link href="/" className="text-gray-600 hover:text-black">
               Home
             </Link>
-            <Link href="/my-leagues" className="text-gray-600 hover:text-black">
-              My Leagues
-            </Link>
             <Link href="/news" className="text-gray-600 hover:text-black">
               News
             </Link>
-            <Link href="/contact" className="text-black font-semibold">
-              Contact
-            </Link>
+            <Link
+  href="/profile"
+  className="bg-black text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+>
+  Profile
+</Link>
           </nav>
         </div>
       </header>

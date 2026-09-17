@@ -19,8 +19,13 @@ export default function NewsClientView({ articles }: { articles: any[] }) {
           <h1 className="text-2xl font-bold">The Fantasy Golf Association</h1>
           <nav className="flex gap-6">
             <Link href="/" className="text-gray-600 hover:text-black">Home</Link>
-            <Link href="/my-leagues" className="text-gray-600 hover:text-black">My Leagues</Link>
-            <Link href="/news" className="text-black font-semibold">News</Link>
+            <Link href="/contact" className="text-gray-600 hover:text-black">Contact</Link>
+            <Link
+  href="/profile"
+  className="bg-black text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+>
+  Profile
+</Link>
           </nav>
         </div>
       </header>
