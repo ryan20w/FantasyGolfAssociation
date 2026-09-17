@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 
@@ -19,12 +19,16 @@ export default function LeaguePage({
 }: {
   params: Promise<{ code: string }>;
 }) {
+  // Unwrap params safely using React's use() hook
+  const resolvedParams = use(params);
+  const code = resolvedParams.code;
+
   const [league, setLeague] = useState<League | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadLeague() {
-      const { code } = await params;
+      if (!code) return;
 
       const { data, error } = await supabase
         .from("leagues")
@@ -44,7 +48,7 @@ export default function LeaguePage({
     }
 
     loadLeague();
-  }, [params]);
+  }, [code]);
 
   if (loading) {
     return (
@@ -85,7 +89,7 @@ export default function LeaguePage({
     );
   }
 
-  const inviteLink = `${window.location.origin}/join/${league.code}`;
+  const inviteLink = typeof window !== "undefined" ? `${window.location.origin}/join/${league.code}` : "";
 
   function copyInviteLink() {
     navigator.clipboard.writeText(inviteLink);

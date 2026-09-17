@@ -21,7 +21,6 @@ export default function NewsClientView({ articles }: { articles: any[] }) {
             <Link href="/" className="text-gray-600 hover:text-black">Home</Link>
             <Link href="/my-leagues" className="text-gray-600 hover:text-black">My Leagues</Link>
             <Link href="/news" className="text-black font-semibold">News</Link>
-            <Link href="/contact" className="text-gray-600 hover:text-black">Contact</Link>
           </nav>
         </div>
       </header>

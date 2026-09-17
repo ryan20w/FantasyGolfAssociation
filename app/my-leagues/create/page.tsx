@@ -13,44 +13,52 @@ export default function CreateLeague() {
 
   function generateLeagueCode() {
     const characters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
     let code = "";
-
     for (let i = 0; i < 4; i++) {
       code += characters.charAt(
         Math.floor(Math.random() * characters.length)
       );
     }
-
     return `FGA-${code}`;
   }
 
-async function handleCreateLeague() {
-  if (!leagueName.trim() || !commissionerName.trim()) {
-    alert("Please enter a league name and commissioner name.");
-    return;
+  async function handleCreateLeague() {
+    if (!leagueName.trim() || !commissionerName.trim()) {
+      alert("Please enter a league name and commissioner name.");
+      return;
+    }
+
+    // 1. Check if user is authenticated
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      alert("You must be signed in to create a league!");
+      router.push("/login");
+      return;
+    }
+
+    const leagueCode = generateLeagueCode();
+
+    // 2. Insert league including the user's ID as commissioner_id
+    const { error } = await supabase
+      .from("leagues")
+      .insert({
+        code: leagueCode,
+        name: leagueName.trim(),
+        commissioner: commissionerName.trim(),
+        number_of_teams: Number(numberOfTeams),
+        members: 1,
+        commissioner_id: user.id,
+      });
+
+    if (error) {
+      console.error(error);
+      alert("There was a problem creating the league.");
+      return;
+    }
+
+    router.push(`/my-leagues/${leagueCode}`);
   }
-
-  const leagueCode = generateLeagueCode();
-
-  const { error } = await supabase
-    .from("leagues")
-    .insert({
-      code: leagueCode,
-      name: leagueName.trim(),
-      commissioner: commissionerName.trim(),
-      number_of_teams: Number(numberOfTeams),
-      members: 1,
-    });
-
-  if (error) {
-    console.error(error);
-    alert("There was a problem creating the league.");
-    return;
-  }
-
-  router.push(`/my-leagues/${leagueCode}`);
-}
 
   return (
     <main className="min-h-screen bg-gray-100">
@@ -134,7 +142,7 @@ async function handleCreateLeague() {
             </select>
           </div>
 
-          {/* Create League */}
+          {/* Create League Button */}
           <button
             type="button"
             onClick={handleCreateLeague}
