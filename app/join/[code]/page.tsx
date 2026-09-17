@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { supabase } from "../../lib/supabase";
 
 type League = {
+  id: string;
   code: string;
   name: string;
   commissioner: string;
-  numberOfTeams: number;
+  number_of_teams: number;
   members: number;
-  createdAt: string;
+  created_at: string;
 };
 
 export default function JoinLeaguePage({
@@ -21,6 +23,7 @@ export default function JoinLeaguePage({
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(true);
   const [joined, setJoined] = useState(false);
+  const [joining, setJoining] = useState(false);
 
   useEffect(() => {
     async function loadLeague() {
@@ -30,12 +33,18 @@ export default function JoinLeaguePage({
 
       setCode(formattedCode);
 
-      const savedLeague = localStorage.getItem(
-        `fga-league-${formattedCode}`
-      );
+      const { data, error } = await supabase
+        .from("leagues")
+        .select("*")
+        .eq("code", formattedCode)
+        .single();
 
-      if (savedLeague) {
-        setLeague(JSON.parse(savedLeague));
+      if (error) {
+        console.error(error);
+      }
+
+      if (data) {
+        setLeague(data);
       }
 
       setLoading(false);
@@ -44,26 +53,37 @@ export default function JoinLeaguePage({
     loadLeague();
   }, [params]);
 
-  function handleJoinLeague() {
-    if (!league) return;
+  async function handleJoinLeague() {
+    if (!league || joining) return;
 
-    if (league.members >= league.numberOfTeams) {
+    if (league.members >= league.number_of_teams) {
       alert("This league is full.");
       return;
     }
 
-    const updatedLeague = {
-      ...league,
-      members: league.members + 1,
-    };
+    setJoining(true);
 
-    localStorage.setItem(
-      `fga-league-${league.code}`,
-      JSON.stringify(updatedLeague)
-    );
+    const newMemberCount = league.members + 1;
 
-    setLeague(updatedLeague);
+    const { data, error } = await supabase
+      .from("leagues")
+      .update({
+        members: newMemberCount,
+      })
+      .eq("id", league.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      alert("There was a problem joining the league.");
+      setJoining(false);
+      return;
+    }
+
+    setLeague(data);
     setJoined(true);
+    setJoining(false);
   }
 
   if (loading) {
@@ -143,7 +163,7 @@ export default function JoinLeaguePage({
             <p className="text-gray-600 mb-8">
               The league now has{" "}
               <strong>
-                {league.members} / {league.numberOfTeams}
+                {league.members} / {league.number_of_teams}
               </strong>{" "}
               teams.
             </p>
@@ -164,12 +184,11 @@ export default function JoinLeaguePage({
   }
 
   const leagueFull =
-    league.members >= league.numberOfTeams;
+    league.members >= league.number_of_teams;
 
   return (
     <main className="min-h-screen bg-gray-100">
 
-      {/* Header */}
       <header className="bg-white border-b">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <Link href="/" className="text-2xl font-bold">
@@ -178,7 +197,6 @@ export default function JoinLeaguePage({
         </div>
       </header>
 
-      {/* League Information */}
       <section className="max-w-xl mx-auto px-6 py-16">
 
         <div className="mb-8 text-center">
@@ -199,7 +217,6 @@ export default function JoinLeaguePage({
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
 
-          {/* League Details */}
           <div className="space-y-5 mb-8">
 
             <div>
@@ -228,13 +245,12 @@ export default function JoinLeaguePage({
               </p>
 
               <p className="text-lg font-semibold">
-                {league.members} / {league.numberOfTeams}
+                {league.members} / {league.number_of_teams}
               </p>
             </div>
 
           </div>
 
-          {/* Join Button */}
           {leagueFull ? (
             <div className="bg-gray-100 rounded-lg p-4 text-center">
               <p className="font-semibold">
@@ -245,9 +261,10 @@ export default function JoinLeaguePage({
             <button
               type="button"
               onClick={handleJoinLeague}
-              className="w-full bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
+              disabled={joining}
+              className="w-full bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:opacity-50"
             >
-              Join League
+              {joining ? "Joining..." : "Join League"}
             </button>
           )}
 

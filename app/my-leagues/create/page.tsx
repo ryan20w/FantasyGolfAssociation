@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabase";
 
 export default function CreateLeague() {
   const router = useRouter();
@@ -24,30 +25,32 @@ export default function CreateLeague() {
     return `FGA-${code}`;
   }
 
-  function handleCreateLeague() {
-    if (!leagueName.trim() || !commissionerName.trim()) {
-      alert("Please enter a league name and commissioner name.");
-      return;
-    }
-
-    const leagueCode = generateLeagueCode();
-
-    const league = {
-      code: leagueCode,
-      name: leagueName,
-      commissioner: commissionerName,
-      numberOfTeams: Number(numberOfTeams),
-      members: 1,
-      createdAt: new Date().toISOString(),
-    };
-
-    localStorage.setItem(
-      `fga-league-${leagueCode}`,
-      JSON.stringify(league)
-    );
-
-    router.push(`/my-leagues/${leagueCode}`);
+async function handleCreateLeague() {
+  if (!leagueName.trim() || !commissionerName.trim()) {
+    alert("Please enter a league name and commissioner name.");
+    return;
   }
+
+  const leagueCode = generateLeagueCode();
+
+  const { error } = await supabase
+    .from("leagues")
+    .insert({
+      code: leagueCode,
+      name: leagueName.trim(),
+      commissioner: commissionerName.trim(),
+      number_of_teams: Number(numberOfTeams),
+      members: 1,
+    });
+
+  if (error) {
+    console.error(error);
+    alert("There was a problem creating the league.");
+    return;
+  }
+
+  router.push(`/my-leagues/${leagueCode}`);
+}
 
   return (
     <main className="min-h-screen bg-gray-100">

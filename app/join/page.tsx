@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { supabase } from "../lib/supabase";
 
-export default function JoinLeague() {
-  const router = useRouter();
-
+export default function JoinLeaguePage() {
   const [leagueCode, setLeagueCode] = useState("");
   const [error, setError] = useState("");
+  const [checking, setChecking] = useState(false);
 
-  function handleJoinLeague() {
+  const router = useRouter();
+
+  async function handleJoinLeague() {
     const formattedCode = leagueCode.trim().toUpperCase();
 
     if (!formattedCode) {
@@ -17,11 +20,29 @@ export default function JoinLeague() {
       return;
     }
 
-    const savedLeague = localStorage.getItem(
-      `fga-league-${formattedCode}`
-    );
+    setError("");
+    setChecking(true);
 
-    if (!savedLeague) {
+    console.log("Looking for league code:", formattedCode);
+
+    const { data, error: supabaseError } = await supabase
+      .from("leagues")
+      .select("code")
+      .eq("code", formattedCode)
+      .maybeSingle();
+
+    console.log("Supabase result:", data);
+    console.log("Supabase error:", supabaseError);
+
+    setChecking(false);
+
+    if (supabaseError) {
+      console.error(supabaseError);
+      setError("There was a problem checking the league.");
+      return;
+    }
+
+    if (!data) {
       setError("League not found. Check your code and try again.");
       return;
     }
@@ -31,53 +52,43 @@ export default function JoinLeague() {
 
   return (
     <main className="min-h-screen bg-gray-100">
-
-      {/* Header */}
       <header className="bg-white border-b">
         <div className="max-w-6xl mx-auto px-6 py-4">
-          <h1 className="text-2xl font-bold">
+          <Link href="/" className="text-2xl font-bold">
             The Fantasy Golf Association
-          </h1>
+          </Link>
         </div>
       </header>
 
-      {/* Join League */}
-      <section className="max-w-xl mx-auto px-6 py-16">
-
-        <div className="mb-8 text-center">
+      <section className="max-w-xl mx-auto px-6 py-20">
+        <div className="text-center mb-8">
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-2">
-            The Fantasy Golf Association
+            Join a League
           </p>
 
           <h2 className="text-4xl font-bold mb-3">
-            Join a League
+            Enter Your League Code
           </h2>
 
           <p className="text-gray-600">
-            Enter the league code provided by your commissioner.
+            Enter the code provided by your league commissioner.
           </p>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-
           <label className="block text-sm font-semibold mb-2">
             League Code
           </label>
 
           <input
             type="text"
-            placeholder="e.g. FGA-X7KQ"
             value={leagueCode}
             onChange={(e) => {
               setLeagueCode(e.target.value);
               setError("");
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleJoinLeague();
-              }
-            }}
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 mb-4 uppercase focus:outline-none focus:ring-2 focus:ring-black"
+            placeholder="FGA-7K42"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 mb-4 uppercase"
           />
 
           {error && (
@@ -89,15 +100,13 @@ export default function JoinLeague() {
           <button
             type="button"
             onClick={handleJoinLeague}
-            className="w-full bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
+            disabled={checking}
+            className="w-full bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:opacity-50"
           >
-            Find League
+            {checking ? "Checking..." : "Find League"}
           </button>
-
         </div>
-
       </section>
-
     </main>
   );
 }

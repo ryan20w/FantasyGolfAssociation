@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { supabase } from "../../lib/supabase";
 
 type League = {
+  id: string;
   code: string;
   name: string;
   commissioner: string;
-  numberOfTeams: number;
+  number_of_teams: number;
   members: number;
-  createdAt: string;
+  created_at: string;
 };
 
 export default function LeaguePage({
@@ -24,10 +26,18 @@ export default function LeaguePage({
     async function loadLeague() {
       const { code } = await params;
 
-      const savedLeague = localStorage.getItem(`fga-league-${code}`);
+      const { data, error } = await supabase
+        .from("leagues")
+        .select("*")
+        .eq("code", code)
+        .single();
 
-      if (savedLeague) {
-        setLeague(JSON.parse(savedLeague));
+      if (error) {
+        console.error(error);
+      }
+
+      if (data) {
+        setLeague(data);
       }
 
       setLoading(false);
@@ -47,7 +57,6 @@ export default function LeaguePage({
   if (!league) {
     return (
       <main className="min-h-screen bg-gray-100">
-
         <header className="bg-white border-b">
           <div className="max-w-6xl mx-auto px-6 py-4">
             <h1 className="text-2xl font-bold">
@@ -72,13 +81,11 @@ export default function LeaguePage({
             Create a League
           </Link>
         </section>
-
       </main>
     );
   }
 
-  const inviteLink =
-    `${window.location.origin}/join/${league.code}`;
+  const inviteLink = `${window.location.origin}/join/${league.code}`;
 
   function copyInviteLink() {
     navigator.clipboard.writeText(inviteLink);
@@ -87,11 +94,8 @@ export default function LeaguePage({
 
   return (
     <main className="min-h-screen bg-gray-100">
-
-      {/* Header */}
       <header className="bg-white border-b">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-
           <Link href="/" className="text-2xl font-bold">
             The Fantasy Golf Association
           </Link>
@@ -102,15 +106,11 @@ export default function LeaguePage({
           >
             My Leagues
           </Link>
-
         </div>
       </header>
 
-      {/* League Dashboard */}
       <section className="max-w-6xl mx-auto px-6 py-12">
-
         <div className="mb-8">
-
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-2">
             League Dashboard
           </p>
@@ -122,12 +122,9 @@ export default function LeaguePage({
           <p className="text-gray-600">
             Commissioner: {league.commissioner}
           </p>
-
         </div>
 
-        {/* League Information */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
-
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <p className="text-sm text-gray-500 mb-2">
               League Code
@@ -144,7 +141,7 @@ export default function LeaguePage({
             </p>
 
             <p className="text-3xl font-bold">
-              {league.members} / {league.numberOfTeams}
+              {league.members} / {league.number_of_teams}
             </p>
           </div>
 
@@ -157,12 +154,9 @@ export default function LeaguePage({
               {league.commissioner}
             </p>
           </div>
-
         </div>
 
-        {/* Invite Friends */}
         <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100">
-
           <h3 className="text-2xl font-bold mb-2">
             Invite Your Friends
           </h3>
@@ -172,29 +166,23 @@ export default function LeaguePage({
           </p>
 
           <div className="mb-6">
-
             <label className="block text-sm font-semibold mb-2">
               League Code
             </label>
 
             <div className="flex gap-3">
-
               <div className="flex-1 bg-gray-100 rounded-lg px-4 py-3 font-bold tracking-wider">
                 {league.code}
               </div>
-
             </div>
-
           </div>
 
           <div>
-
             <label className="block text-sm font-semibold mb-2">
               Invite Link
             </label>
 
             <div className="flex gap-3">
-
               <input
                 type="text"
                 value={inviteLink}
@@ -208,15 +196,10 @@ export default function LeaguePage({
               >
                 Copy Link
               </button>
-
             </div>
-
           </div>
-
         </div>
-
       </section>
-
     </main>
   );
 }
