@@ -160,7 +160,29 @@ export default function LeaguePage({
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100">
+        {/* League Members / Teams Section */}
+        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 mb-8">
+          <h3 className="text-2xl font-bold mb-2">
+            League Teams ({league.members} / {league.number_of_teams})
+          </h3>
+          <p className="text-gray-600 mb-6">
+            Registered managers and teams competing in this league.
+          </p>
+
+          <div className="space-y-3">
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex justify-between items-center">
+              <div>
+                <p className="font-bold text-gray-900">{league.commissioner}'s Team</p>
+                <p className="text-xs text-gray-500">Commissioner</p>
+              </div>
+              <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
+                Ready
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 mb-8">
           <h3 className="text-2xl font-bold mb-2">
             Invite Your Friends
           </h3>
@@ -203,6 +225,13 @@ export default function LeaguePage({
             </div>
           </div>
         </div>
+
+        <Link
+          href={`/my-leagues/${league.code}/draft`}
+          className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-xl transition shadow-sm"
+        >
+          Enter Draft Room ⛳
+        </Link>
       </section>
     </main>
   );

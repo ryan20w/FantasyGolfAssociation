@@ -37,8 +37,9 @@ export default function JoinLeaguePage() {
     setChecking(false);
 
     if (supabaseError) {
-      console.error(supabaseError);
-      setError("There was a problem checking the league.");
+      console.error("Supabase Error Message:", supabaseError.message);
+      console.error("Supabase Error Details:", supabaseError.details);
+      setError(`There was a problem checking the league: ${supabaseError.message}`);
       return;
     }
 

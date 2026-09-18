@@ -52,10 +52,11 @@ export default function CreateLeague() {
       });
 
     if (error) {
-      console.error(error);
-      alert("There was a problem creating the league.");
-      return;
-    }
+  console.error("Supabase Error Message:", error.message);
+  console.error("Supabase Error Details:", error.details);
+  alert(`Problem creating league: ${error.message}`);
+  return;
+}
 
     router.push(`/my-leagues/${leagueCode}`);
   }
@@ -133,7 +134,9 @@ export default function CreateLeague() {
               className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
             >
               <option value="4">4 Teams</option>
+              <option value="5">5 Teams</option>
               <option value="6">6 Teams</option>
+              <option value="7">7 Teams</option>
               <option value="8">8 Teams</option>
               <option value="10">10 Teams</option>
               <option value="12">12 Teams</option>
