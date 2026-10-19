@@ -203,9 +203,9 @@ export default function LeaguePage({
                 <button
                   type="button"
                   onClick={() => copy(league.code, "code")}
-                  className="bg-gray-900 text-white px-5 py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors w-28"
+                  className="bg-gray-900 text-white px-5 py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors w-32 shrink-0 whitespace-nowrap"
                 >
-                  {copied === "code" ? "Copied" : "Copy code"}
+                  {copied === "code" ? "Copied" : "Copy Code"}
                 </button>
               </div>
             </div>
@@ -225,7 +225,7 @@ export default function LeaguePage({
                 <button
                   type="button"
                   onClick={() => copy(inviteLink, "link")}
-                  className="bg-gray-900 text-white px-5 py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors w-28"
+                  className="bg-gray-900 text-white px-5 py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors w-32 shrink-0 whitespace-nowrap"
                 >
                   {copied === "link" ? "Copied" : "Copy link"}
                 </button>
