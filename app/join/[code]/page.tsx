@@ -1,165 +1,158 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import Link from "next/link";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "@/app/lib/supabase";
+import type { League } from "@/app/lib/leagues";
 
-type League = {
-  id: string;
-  code: string;
-  name: string;
-  commissioner: string;
-  number_of_teams: number;
-  members: number;
-  created_at: string;
-};
-
-export default function JoinLeaguePage({
+export default function JoinLeagueByCodePage({
   params,
 }: {
   params: Promise<{ code: string }>;
 }) {
+  const { code: rawCode } = use(params);
+  const code = rawCode.toUpperCase();
+
   const [league, setLeague] = useState<League | null>(null);
-  const [code, setCode] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [alreadyMember, setAlreadyMember] = useState(false);
+  const [teamName, setTeamName] = useState("");
   const [loading, setLoading] = useState(true);
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    async function loadLeague() {
-      const { code } = await params;
+    async function load() {
+      const [{ data: leagueData, error: leagueError }, { data: userData }] =
+        await Promise.all([
+          supabase.from("leagues").select("*").eq("code", code).maybeSingle(),
+          supabase.auth.getUser(),
+        ]);
 
-      const formattedCode = code.toUpperCase();
+      if (leagueError) console.error(leagueError);
 
-      setCode(formattedCode);
+      const user = userData.user;
+      setUserId(user?.id ?? null);
 
-      const { data, error } = await supabase
-        .from("leagues")
-        .select("*")
-        .eq("code", formattedCode)
-        .single();
+      if (leagueData) {
+        setLeague(leagueData);
 
-      if (error) {
-        console.error(error);
-      }
-
-      if (data) {
-        setLeague(data);
+        if (user) {
+          const { data: existing } = await supabase
+            .from("league_members")
+            .select("id")
+            .eq("league_id", leagueData.id)
+            .eq("user_id", user.id)
+            .maybeSingle();
+          setAlreadyMember(!!existing);
+        }
       }
 
       setLoading(false);
     }
 
-    loadLeague();
-  }, [params]);
+    load();
+  }, [code]);
 
   async function handleJoinLeague() {
-    if (!league || joining) return;
+    if (!league || !userId || joining) return;
+    setError("");
 
-    if (league.members >= league.number_of_teams) {
-      alert("This league is full.");
+    const name = teamName.trim();
+    if (!name) {
+      setError("Give your team a name before joining.");
       return;
     }
 
     setJoining(true);
 
-    const newMemberCount = league.members + 1;
+    // Re-check capacity against real members rather than the cached count.
+    const { count } = await supabase
+      .from("league_members")
+      .select("id", { count: "exact", head: true })
+      .eq("league_id", league.id);
 
-    const { data, error } = await supabase
-      .from("leagues")
-      .update({
-        members: newMemberCount,
-      })
-      .eq("id", league.id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error(error);
-      alert("There was a problem joining the league.");
+    if ((count ?? 0) >= league.number_of_teams) {
+      setError("This league just filled up.");
       setJoining(false);
       return;
     }
 
-    setLeague(data);
+    // Next open draft slot. Retry if two people join at the same moment.
+    let memberError: { message: string } | null = null;
+    let position = (count ?? 0) + 1;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error: insertError } = await supabase.from("league_members").insert({
+        league_id: league.id,
+        user_id: userId,
+        team_name: name,
+        draft_position: position,
+      });
+      memberError = insertError;
+      if (!insertError) break;
+      position += 1;
+    }
+
+    if (memberError) {
+      console.error(memberError);
+      setError(`We couldn't add you to the league: ${memberError.message}`);
+      setJoining(false);
+      return;
+    }
+
+    const { count: newCount } = await supabase
+      .from("league_members")
+      .select("id", { count: "exact", head: true })
+      .eq("league_id", league.id);
+
+    const { data: updated } = await supabase
+      .from("leagues")
+      .update({ members: newCount ?? position })
+      .eq("id", league.id)
+      .select()
+      .single();
+
+    setLeague(updated ?? { ...league, members: newCount ?? position });
     setJoined(true);
     setJoining(false);
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-600">
-          Loading league...
-        </p>
+      <main className="flex items-center justify-center py-32">
+        <p className="text-gray-600">Loading league...</p>
       </main>
     );
   }
 
   if (!league) {
     return (
-      <main className="min-h-screen bg-gray-100">
-
-        <header className="bg-white border-b">
-          <div className="max-w-6xl mx-auto px-6 py-4">
-            <Link href="/" className="text-2xl font-bold">
-              The Fantasy Golf Association
-            </Link>
-          </div>
-        </header>
-
-        <section className="max-w-xl mx-auto px-6 py-20 text-center">
-
-          <h2 className="text-3xl font-bold mb-4">
-            League Not Found
-          </h2>
-
+      <main>
+        <section className="max-w-xl mx-auto px-4 sm:px-6 py-20 text-center">
+          <h1 className="text-3xl font-bold mb-4">League not found</h1>
           <p className="text-gray-600 mb-8">
-            We couldn't find a league associated with code{" "}
-            <strong>{code}</strong>.
+            We couldn&apos;t find a league with the code <strong>{code}</strong>.
           </p>
-
           <Link
             href="/join"
-            className="inline-block bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800"
+            className="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
           >
-            Enter Another Code
+            Enter another code
           </Link>
-
         </section>
-
       </main>
     );
   }
 
   if (joined) {
     return (
-      <main className="min-h-screen bg-gray-100">
-
-        <header className="bg-white border-b">
-          <div className="max-w-6xl mx-auto px-6 py-4">
-            <Link href="/" className="text-2xl font-bold">
-              The Fantasy Golf Association
-            </Link>
-          </div>
-        </header>
-
-        <section className="max-w-xl mx-auto px-6 py-20 text-center">
-
-          <div className="bg-white rounded-xl shadow-sm border border-green-200 p-8">
-
-            <h2 className="text-3xl font-bold mb-3">
-              You're In!
-            </h2>
-
-            <p className="text-gray-600 mb-2">
-              You have joined:
-            </p>
-
-            <p className="text-2xl font-bold mb-6">
-              {league.name}
-            </p>
-
+      <main>
+        <section className="max-w-xl mx-auto px-4 sm:px-6 py-20 text-center">
+          <div className="bg-white rounded-2xl shadow-sm border border-emerald-200 p-8">
+            <h1 className="text-3xl font-bold mb-3">You&apos;re in!</h1>
+            <p className="text-gray-600 mb-2">You joined</p>
+            <p className="text-2xl font-bold mb-6">{league.name}</p>
             <p className="text-gray-600 mb-8">
               The league now has{" "}
               <strong>
@@ -167,111 +160,110 @@ export default function JoinLeaguePage({
               </strong>{" "}
               teams.
             </p>
-
             <Link
               href={`/my-leagues/${league.code}`}
-              className="inline-block bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800"
+              className="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
             >
-              View League
+              Go to league
             </Link>
-
           </div>
-
         </section>
-
       </main>
     );
   }
 
-  const leagueFull =
-    league.members >= league.number_of_teams;
+  const leagueFull = league.members >= league.number_of_teams;
 
   return (
-    <main className="min-h-screen bg-gray-100">
-
-      <header className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <Link href="/" className="text-2xl font-bold">
-            The Fantasy Golf Association
-          </Link>
-        </div>
-      </header>
-
-      <section className="max-w-xl mx-auto px-6 py-16">
-
+    <main>
+      <section className="max-w-xl mx-auto px-4 sm:px-6 py-16">
         <div className="mb-8 text-center">
-
-          <p className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-2">
-            You've Been Invited
+          <p className="text-sm font-semibold text-emerald-700 mb-2">
+            You&apos;ve been invited
           </p>
-
-          <h2 className="text-4xl font-bold mb-3">
-            {league.name}
-          </h2>
-
-          <p className="text-gray-600">
-            Join the league and compete for the FGA Cup.
-          </p>
-
+          <h1 className="text-4xl font-bold mb-3">{league.name}</h1>
+          <p className="text-gray-600">Join the league and compete for the FGA Cup.</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-
-          <div className="space-y-5 mb-8">
-
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+          <dl className="space-y-5 mb-8">
             <div>
-              <p className="text-sm text-gray-500">
-                League Code
-              </p>
-
-              <p className="text-xl font-bold tracking-wider">
-                {league.code}
-              </p>
+              <dt className="text-sm text-gray-500">League code</dt>
+              <dd className="text-xl font-bold tracking-wider">{league.code}</dd>
             </div>
-
             <div>
-              <p className="text-sm text-gray-500">
-                Commissioner
-              </p>
-
-              <p className="text-lg font-semibold">
-                {league.commissioner}
-              </p>
+              <dt className="text-sm text-gray-500">Commissioner</dt>
+              <dd className="text-lg font-semibold">{league.commissioner}</dd>
             </div>
-
             <div>
-              <p className="text-sm text-gray-500">
-                Teams
-              </p>
-
-              <p className="text-lg font-semibold">
+              <dt className="text-sm text-gray-500">Teams</dt>
+              <dd className="text-lg font-semibold">
                 {league.members} / {league.number_of_teams}
-              </p>
+              </dd>
             </div>
+          </dl>
 
-          </div>
-
-          {leagueFull ? (
+          {alreadyMember ? (
+            <div className="text-center">
+              <p className="font-semibold mb-4">You&apos;re already in this league.</p>
+              <Link
+                href={`/my-leagues/${league.code}`}
+                className="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+              >
+                Go to league
+              </Link>
+            </div>
+          ) : leagueFull ? (
             <div className="bg-gray-100 rounded-lg p-4 text-center">
-              <p className="font-semibold">
-                This league is full.
-              </p>
+              <p className="font-semibold">This league is full.</p>
+            </div>
+          ) : !userId ? (
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">Sign in to pick a team name and join.</p>
+              <Link
+                href={`/login?next=/join/${league.code}`}
+                className="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+              >
+                Sign in to join
+              </Link>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={handleJoinLeague}
-              disabled={joining}
-              className="w-full bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:opacity-50"
-            >
-              {joining ? "Joining..." : "Join League"}
-            </button>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="teamName" className="block text-sm font-semibold mb-2">
+                  Your team name
+                </label>
+                <input
+                  id="teamName"
+                  type="text"
+                  value={teamName}
+                  onChange={(e) => {
+                    setTeamName(e.target.value);
+                    setError("");
+                  }}
+                  placeholder="e.g. Birdie Bandits"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              {error && (
+                <p role="alert" className="text-red-600 text-sm">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={handleJoinLeague}
+                disabled={joining}
+                className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                {joining ? "Joining..." : "Join league"}
+              </button>
+            </div>
           )}
-
         </div>
-
       </section>
-
     </main>
   );
 }

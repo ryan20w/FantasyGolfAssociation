@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/app/lib/supabase";
 
 export default function JoinLeaguePage() {
   const [leagueCode, setLeagueCode] = useState("");
@@ -12,18 +11,17 @@ export default function JoinLeaguePage() {
 
   const router = useRouter();
 
-  async function handleJoinLeague() {
+  async function handleJoinLeague(e?: React.FormEvent) {
+    e?.preventDefault();
     const formattedCode = leagueCode.trim().toUpperCase();
 
     if (!formattedCode) {
-      setError("Please enter a league code.");
+      setError("Enter a league code to continue.");
       return;
     }
 
     setError("");
     setChecking(true);
-
-    console.log("Looking for league code:", formattedCode);
 
     const { data, error: supabaseError } = await supabase
       .from("leagues")
@@ -31,20 +29,16 @@ export default function JoinLeaguePage() {
       .eq("code", formattedCode)
       .maybeSingle();
 
-    console.log("Supabase result:", data);
-    console.log("Supabase error:", supabaseError);
-
     setChecking(false);
 
     if (supabaseError) {
-      console.error("Supabase Error Message:", supabaseError.message);
-      console.error("Supabase Error Details:", supabaseError.details);
+      console.error("Supabase error:", supabaseError);
       setError(`There was a problem checking the league: ${supabaseError.message}`);
       return;
     }
 
     if (!data) {
-      setError("League not found. Check your code and try again.");
+      setError("We couldn't find that league. Check the code and try again.");
       return;
     }
 
@@ -52,36 +46,25 @@ export default function JoinLeaguePage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100">
-      <header className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <Link href="/" className="text-2xl font-bold">
-            The Fantasy Golf Association
-          </Link>
-        </div>
-      </header>
-
-      <section className="max-w-xl mx-auto px-6 py-20">
+    <main className="bg-gray-50">
+      <section className="max-w-xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
         <div className="text-center mb-8">
-          <p className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-2">
-            Join a League
-          </p>
-
-          <h2 className="text-4xl font-bold mb-3">
-            Enter Your League Code
-          </h2>
-
+          <h1 className="text-4xl font-bold mb-3">Join a league</h1>
           <p className="text-gray-600">
-            Enter the code provided by your league commissioner.
+            Enter the code your league commissioner shared with you.
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-          <label className="block text-sm font-semibold mb-2">
-            League Code
+        <form
+          onSubmit={handleJoinLeague}
+          className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8"
+        >
+          <label htmlFor="leagueCode" className="block text-sm font-semibold mb-2">
+            League code
           </label>
 
           <input
+            id="leagueCode"
             type="text"
             value={leagueCode}
             onChange={(e) => {
@@ -89,24 +72,24 @@ export default function JoinLeaguePage() {
               setError("");
             }}
             placeholder="FGA-7K42"
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 mb-4 uppercase"
+            autoComplete="off"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 mb-4 uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
 
           {error && (
-            <p className="text-red-600 text-sm mb-4">
+            <p role="alert" className="text-red-600 text-sm mb-4">
               {error}
             </p>
           )}
 
           <button
-            type="button"
-            onClick={handleJoinLeague}
+            type="submit"
             disabled={checking}
-            className="w-full bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:opacity-50"
+            className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50"
           >
-            {checking ? "Checking..." : "Find League"}
+            {checking ? "Checking..." : "Find league"}
           </button>
-        </div>
+        </form>
       </section>
     </main>
   );

@@ -2,70 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/app/lib/supabase';
-import { User } from '@supabase/supabase-js';
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function checkUser() {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setLoading(false);
-    }
-
-    checkUser();
-
-    // Listen for real-time sign in / sign out state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+    if (!isModalOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setIsModalOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isModalOpen]);
 
   return (
-    <main className="min-h-screen bg-gray-50">
-
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold tracking-tight">
-            The Fantasy Golf Association
-          </h1>
-          <nav className="flex items-center gap-6 font-medium">
-            <Link href="/news" className="text-gray-600 hover:text-black transition-colors">
-              News
-            </Link>
-            <Link href="/contact" className="text-gray-600 hover:text-black transition-colors">
-              Contact
-            </Link>
-
-            {!loading && (
-              user ? (
-                <Link
-                  href="/profile"
-                  className="bg-black text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-colors"
-                >
-                  Profile
-                </Link>
-              ) : (
-                <Link
-                  href="/login"
-                  className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
-                >
-                  Sign In
-                </Link>
-              )
-            )}
-          </nav>
-        </div>
-      </header>
+    <main className="bg-gray-50">
 
       {/* Hero Section (Top Title & Call to Action Area) */}
       <section className="bg-gradient-to-b from-emerald-50/60 to-gray-50 border-b border-emerald-100/50 py-24">
@@ -105,7 +54,7 @@ export default function Home() {
         </h2>
         <div className="grid md:grid-cols-3 gap-6">
           
-          <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-5 hover:shadow-md">
+          <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
             <h3 className="text-xl font-bold text-gray-900 mb-2">
               Real-Time Data
             </h3>
@@ -114,7 +63,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-5 hover:shadow-md">
+          <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
             <h3 className="text-xl font-bold text-gray-900 mb-2">
               Weekly Drafting
             </h3>
@@ -123,7 +72,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-5 hover:shadow-md">
+          <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
             <h3 className="text-xl font-bold text-gray-900 mb-2">
               Season Points
             </h3>
@@ -140,7 +89,7 @@ export default function Home() {
         <h2 className="text-2xl font-bold text-gray-900 mb-8">
           Weekly Contests
         </h2>
-        <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-md w-full flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md w-full flex flex-col justify-between">
           <div>
             <h3 className="text-xl font-bold text-emerald-600 mb-1">
               Weekly Redrafts aren&apos;t your thing?
@@ -166,15 +115,15 @@ export default function Home() {
 
       {/* Modal Overlay */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white p-8 rounded-2xl w-full max-w-2xl relative shadow-xl border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setIsModalOpen(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="btp-title" onClick={(e) => e.stopPropagation()} className="bg-white p-8 rounded-2xl w-full max-w-2xl relative shadow-xl border border-gray-100">
             <button 
               onClick={() => setIsModalOpen(false)}
-              className="absolute right-5 top-5 text-2xl text-gray-400 hover:text-black transition-colors"
+              aria-label="Close" className="absolute right-5 top-5 text-2xl text-gray-400 hover:text-black transition-colors"
             >
               &times;
             </button>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Beat-the-Pros</h2>
+            <h2 id="btp-title" className="text-2xl font-bold text-gray-900 mb-4">Beat-the-Pros</h2>
             <p className="text-gray-600 leading-relaxed">
               Beat-the-pros contests offer a unique opportunity to compete against the founders of FGA for the opportunity to win cash prizes!
               <br /><br />
