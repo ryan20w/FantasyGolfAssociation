@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { useRouter } from "next/navigation";
+import PasswordInput from "@/app/components/PasswordInput";
 
 type Mode = "signin" | "signup" | "forgot";
 
@@ -190,17 +191,14 @@ export default function LoginPage() {
                     </button>
                   )}
                 </div>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={inputClass}
-                  placeholder="••••••••"
-                />
+                <div className="mt-1">
+                  <PasswordInput
+                    id="password"
+                    value={password}
+                    onChange={setPassword}
+                    autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                  />
+                </div>
               </div>
             )}
 

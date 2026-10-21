@@ -12,6 +12,12 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [leagues, setLeagues] = useState<MyLeague[]>([]);
   const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState("");
+  const [savedUsername, setSavedUsername] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [nameNotice, setNameNotice] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadUserData() {
@@ -26,12 +32,57 @@ export default function ProfilePage() {
       }
 
       setUser(user);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .maybeSingle();
+      setUsername(profile?.username ?? "");
+      setSavedUsername(profile?.username ?? "");
       setLeagues(await fetchMyLeagues(user.id));
       setLoading(false);
     }
 
     loadUserData();
   }, [router]);
+
+  async function handleSaveUsername(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    setNameError(null);
+    setNameNotice(null);
+
+    const name = username.trim();
+    if (!/^[A-Za-z0-9_]{3,20}$/.test(name)) {
+      setNameError("Usernames are 3-20 characters: letters, numbers or underscores.");
+      return;
+    }
+    if (name === savedUsername) {
+      setEditing(false);
+      return;
+    }
+
+    setSavingName(true);
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({ id: user.id, username: name });
+    setSavingName(false);
+
+    if (error) {
+      setNameError(
+        error.code === "23505"
+          ? "That username is already taken."
+          : `We couldn't save your username: ${error.message}`
+      );
+      return;
+    }
+
+    setSavedUsername(name);
+    setUsername(name);
+    setEditing(false);
+    setNameNotice("Username updated.");
+  }
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -50,9 +101,66 @@ export default function ProfilePage() {
     <main>
       <section className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="min-w-0">
-            <p className="text-sm text-gray-500 mb-1">Signed in as</p>
-            <h1 className="text-2xl font-bold text-gray-900 truncate">{user?.email}</h1>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-gray-500 mb-1">Username</p>
+
+            {editing ? (
+              <form onSubmit={handleSaveUsername} className="flex flex-wrap items-center gap-2">
+                <label htmlFor="username" className="sr-only">Username</label>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  minLength={3}
+                  maxLength={20}
+                  autoFocus
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <button
+                  type="submit"
+                  disabled={savingName}
+                  className="bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  {savingName ? "Saving..." : "Save"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing(false);
+                    setUsername(savedUsername);
+                    setNameError(null);
+                  }}
+                  className="text-sm font-semibold text-gray-600 hover:text-gray-900 px-2 py-2"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-gray-900 truncate">
+                  {savedUsername || "No username yet"}
+                </h1>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing(true);
+                    setNameNotice(null);
+                  }}
+                  className="text-sm font-semibold text-emerald-700 hover:underline"
+                >
+                  {savedUsername ? "Change" : "Add one"}
+                </button>
+              </div>
+            )}
+
+            {nameError && (
+              <p role="alert" className="text-red-600 text-sm mt-2">{nameError}</p>
+            )}
+            {nameNotice && (
+              <p role="status" className="text-emerald-700 text-sm mt-2">{nameNotice}</p>
+            )}
+            <p className="text-sm text-gray-500 mt-2 truncate">{user?.email}</p>
           </div>
           <button
             onClick={handleSignOut}
