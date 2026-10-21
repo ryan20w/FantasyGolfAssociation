@@ -28,8 +28,16 @@ export default function CreateLeague() {
     if (creating) return;
     setError("");
 
-    if (!leagueName.trim() || !commissionerName.trim()) {
-      setError("Enter a league name and your name to continue.");
+    if (!leagueName.trim()) {
+      setError("Enter a league name to continue.");
+      return;
+    }
+    if (!commissionerName.trim()) {
+      setError("Enter your name to continue.");
+      return;
+    }
+    if (!teamName.trim()) {
+      setError("Give your team a name to continue.");
       return;
     }
 
@@ -70,7 +78,7 @@ export default function CreateLeague() {
     const { error: memberError } = await supabase.from("league_members").insert({
       league_id: league.id,
       user_id: user.id,
-      team_name: teamName.trim() || `${commissionerName.trim()}'s Team`,
+      team_name: teamName.trim(),
       draft_position: 1,
     });
 
@@ -115,6 +123,7 @@ export default function CreateLeague() {
               id="leagueName"
               type="text"
               placeholder="e.g. The Boys Golf League"
+              maxLength={40}
               value={leagueName}
               onChange={(e) => setLeagueName(e.target.value)}
               className={inputClass}
@@ -137,12 +146,13 @@ export default function CreateLeague() {
 
           <div>
             <label htmlFor="teamName" className="block text-sm font-semibold mb-2">
-              Your team name <span className="font-normal text-gray-500">(optional)</span>
+              Your team name
             </label>
             <input
               id="teamName"
               type="text"
-              placeholder={commissionerName.trim() ? `${commissionerName.trim()}'s Team` : "e.g. Birdie Bandits"}
+              placeholder="e.g. Birdie Bandits"
+              maxLength={30}
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
               className={inputClass}

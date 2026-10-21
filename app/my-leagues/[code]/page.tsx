@@ -19,6 +19,10 @@ export default function LeaguePage({
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<"link" | "code" | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [teamDraft, setTeamDraft] = useState("");
+  const [savingTeam, setSavingTeam] = useState(false);
+  const [teamError, setTeamError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadLeague() {
@@ -100,6 +104,35 @@ export default function LeaguePage({
     }
   }
 
+  async function saveTeamName(memberId: string) {
+    const name = teamDraft.trim();
+    if (!name) {
+      setTeamError("Team name can't be empty.");
+      return;
+    }
+
+    setSavingTeam(true);
+    setTeamError(null);
+
+    const { data, error } = await supabase
+      .from("league_members")
+      .update({ team_name: name })
+      .eq("id", memberId)
+      .select();
+
+    setSavingTeam(false);
+
+    if (error || !data || data.length === 0) {
+      setTeamError(error?.message ?? "We couldn't save that name. Please try again.");
+      return;
+    }
+
+    setMembers((current) =>
+      current.map((m) => (m.id === memberId ? { ...m, team_name: name } : m))
+    );
+    setRenaming(false);
+  }
+
   const openSpots = Math.max(league.number_of_teams - members.length, 0);
   const isMember = members.some((m) => m.user_id === userId);
 
@@ -159,7 +192,60 @@ export default function LeaguePage({
                     {m.draft_position}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 truncate">{m.team_name}</p>
+                    {renaming && m.user_id === userId ? (
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label htmlFor="teamDraft" className="sr-only">Team name</label>
+                          <input
+                            id="teamDraft"
+                            type="text"
+                            value={teamDraft}
+                            onChange={(e) => setTeamDraft(e.target.value)}
+                            maxLength={30}
+                            autoFocus
+                            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => saveTeamName(m.id)}
+                            disabled={savingTeam}
+                            className="bg-emerald-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                          >
+                            {savingTeam ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRenaming(false);
+                              setTeamError(null);
+                            }}
+                            className="text-sm font-semibold text-gray-600 hover:text-gray-900"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        {teamError && (
+                          <p role="alert" className="text-red-600 text-xs mt-1">{teamError}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <p className="font-bold text-gray-900 truncate">{m.team_name}</p>
+                        {m.user_id === userId && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTeamDraft(m.team_name);
+                              setTeamError(null);
+                              setRenaming(true);
+                            }}
+                            className="text-xs font-semibold text-emerald-700 hover:underline shrink-0"
+                          >
+                            Rename
+                          </button>
+                        )}
+                      </div>
+                    )}
                     {m.user_id === league.commissioner_id && (
                       <p className="text-xs text-gray-500">Commissioner</p>
                     )}
