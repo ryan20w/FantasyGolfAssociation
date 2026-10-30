@@ -26,7 +26,23 @@ async function slashGet(path: string, params: Record<string, string>): Promise<J
   if (!res.ok) throw new Error(`${path} failed with status ${res.status}`);
   return (await res.json()) as Json;
 }
-
+// Tries each path in order and returns the first that works, with a readable error if none do.
+async function slashGetFirst(
+  paths: string[],
+  params: Record<string, string>
+): Promise<{ path: string; data: Json }> {
+  const failures: string[] = [];
+  for (const path of paths) {
+    try {
+      return { path, data: await slashGet(path, params) };
+    } catch (e) {
+      failures.push(e instanceof Error ? e.message : String(e));
+    }
+  }
+  throw new Error(
+    `No tournament endpoint worked for tournId ${params.tournId}, year ${params.year}. Tried: ${failures.join('; ')}`
+  );
+}
 // Dates may arrive as ISO strings, epoch numbers, or Mongo-style {$date: ...} objects.
 function toMs(value: unknown): number {
   if (typeof value === 'number') return value;
@@ -105,13 +121,14 @@ export async function GET(request: Request) {
     }
 
     // 2. Pull the tournament's field.
-    const tournament = await slashGet('/tournaments', { orgId: ORG_ID, tournId, year });
+        const { path: usedPath, data: tournament } = await slashGetFirst(
+      ['/tournament', '/tournaments', '/leaderboard'],
+      { orgId: ORG_ID, tournId, year }
+    );
     const rawPlayers = (
-      Array.isArray(tournament.players)
-        ? tournament.players
-        : Array.isArray(tournament.field)
-        ? tournament.field
-        : []
+      [tournament.players, tournament.field, tournament.leaderboardRows, tournament.leaderboard].find(
+        (v) => Array.isArray(v)
+      ) ?? []
     ) as Json[];
 
     const fieldKeys = new Set<string>();
@@ -130,8 +147,10 @@ export async function GET(request: Request) {
 
     if (debug) {
       return NextResponse.json({
-        tournId,
+                tournId,
+        tournName,
         year,
+        endpointUsed: usedPath,
         tournamentKeys: Object.keys(tournament),
         totalPlayers: rawPlayers.length,
         playerSample: rawPlayers.slice(0, 2),
