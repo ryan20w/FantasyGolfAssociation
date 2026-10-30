@@ -25,8 +25,9 @@ export async function GET(request: Request) {
       cache: 'no-store',
     });
 
-    if (!rankingsResponse.ok) {
-      throw new Error(`Rankings fetch failed: ${rankingsResponse.status}`);
+        if (!rankingsResponse.ok) {
+      const body = await rankingsResponse.text();
+      throw new Error(`Rankings fetch failed: ${rankingsResponse.status} ${body.slice(0, 300)}`);
     }
 
     const rankingsData = await rankingsResponse.json();
