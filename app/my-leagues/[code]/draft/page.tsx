@@ -14,8 +14,10 @@ import {
 type Golfer = {
   id: string;
   name: string;
-  country: string;
-  world_ranking: number;
+  country: string | null;
+  world_ranking: number | null;
+  owgr_rank: number | null;
+  is_playing_this_week: boolean | null;
 };
 
 type DraftPick = {
@@ -72,7 +74,7 @@ export default function DraftRoom({
       setLeague(leagueData);
 
       const [golferRes, memberRes, userRes] = await Promise.all([
-        supabase.from("golfers").select("*").order("world_ranking", { ascending: true }),
+        supabase.from("golfers").select("*").order("owgr_rank", { ascending: true, nullsFirst: false }),
         supabase
           .from("league_members")
           .select("*")
@@ -197,7 +199,11 @@ export default function DraftRoom({
     setDrafting(false);
   }
 
+    // Once the weekly field sync has run, only golfers in this week's field can be drafted.
+  const fieldLoaded = golfers.some((g) => g.is_playing_this_week);
+
   const filteredGolfers = golfers.filter((g) => {
+    if (fieldLoaded && !g.is_playing_this_week && !pickByGolfer.has(g.name)) return false;
     if (hideDrafted && pickByGolfer.has(g.name)) return false;
     return g.name.toLowerCase().includes(searchTerm.toLowerCase());
   });
@@ -246,9 +252,17 @@ export default function DraftRoom({
             </Link>
             <h1 className="text-3xl font-bold mt-1">{league.name} draft</h1>
           </div>
-          <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full">
-            {leagueCode}
-          </span>
+                    <div className="flex items-center gap-3">
+            <Link
+              href={`/my-leagues/${leagueCode}/roster`}
+              className="text-sm font-semibold text-emerald-700 hover:underline"
+            >
+              My roster
+            </Link>
+            <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full">
+              {leagueCode}
+            </span>
+          </div>
         </div>
 
         {/* Draft status */}
@@ -325,7 +339,9 @@ export default function DraftRoom({
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <h2 className="text-xl font-bold text-gray-900">Golfers</h2>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Golfers{fieldLoaded ? " in this week's field" : ""}
+                </h2>
                 <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                   <input
                     type="checkbox"
@@ -371,10 +387,11 @@ export default function DraftRoom({
                     ) : (
                       filteredGolfers.map((golfer) => {
                         const pick = pickByGolfer.get(golfer.name);
+                                                const rank = golfer.owgr_rank ?? golfer.world_ranking;
                         return (
                           <tr key={golfer.id} className={pick ? "bg-gray-50/70" : "hover:bg-gray-50/50"}>
                             <td className="p-3 text-sm font-medium text-gray-600">
-                              #{golfer.world_ranking}
+                              {rank ? `#${rank}` : "-"}
                             </td>
                             <td className={`p-3 text-sm font-bold ${pick ? "text-gray-400" : "text-gray-900"}`}>
                               {golfer.name}

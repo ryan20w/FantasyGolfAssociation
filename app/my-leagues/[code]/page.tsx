@@ -327,6 +327,12 @@ export default function LeaguePage({
           >
             Enter draft room
           </Link>
+                    <Link
+            href={`/my-leagues/${league.code}/roster`}
+            className="inline-block bg-white border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-xl hover:bg-gray-100 transition-colors"
+          >
+            Rosters and free agents
+          </Link>
           {!isMember && userId && (
             <p className="text-sm text-gray-500">
               You&apos;re not on a team in this league, so you can watch the draft but not pick.
