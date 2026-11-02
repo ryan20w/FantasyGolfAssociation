@@ -42,17 +42,24 @@ export async function GET(request: Request) {
     const rankingsData = await rankingsResponse.json();
     const allRankings = Array.isArray(rankingsData.rankings) ? rankingsData.rankings : [];
 
-    // Slice down to the top 300
+    // Slice down to top 300
     const top300Raw = allRankings.slice(0, 300);
 
+    // Sanitize rank types for Supabase integer column requirements
     const golfersToUpsert = top300Raw.map(
-      (player: { playerId: string; fullName: string; rank: number }) => ({
-        player_id: String(player.playerId),
-        name: player.fullName,
-        owgr_rank: player.rank,
-        world_ranking: player.rank,
-        updated_at: new Date().toISOString(),
-      })
+      (player: { playerId: string; fullName: string; rank: string | number }) => {
+        const parsedRank = typeof player.rank === 'number' 
+          ? player.rank 
+          : parseInt(String(player.rank), 10);
+
+        return {
+          player_id: String(player.playerId),
+          name: player.fullName,
+          owgr_rank: isNaN(parsedRank) ? 999 : parsedRank,
+          world_ranking: isNaN(parsedRank) ? 999 : parsedRank,
+          updated_at: new Date().toISOString(),
+        };
+      }
     );
 
     if (golfersToUpsert.length > 0) {
@@ -67,10 +74,7 @@ export async function GET(request: Request) {
 
     // -------------------------------------------------------------------------
     // 3. Fetch Current Tournament Field & Update 'field' Table
-    // Note: Replace endpoint path/parameters if your RapidAPI setup uses a different 
-    // tournament ID selector for the active week's leaderboard.
     // -------------------------------------------------------------------------
-    // For demonstration, looking up the active/current leaderboard:
     const fieldResponse = await fetch(
       `https://live-golf-data.p.rapidapi.com/leaderboard?orgId=1&year=${year}`,
       {
@@ -90,10 +94,9 @@ export async function GET(request: Request) {
       const leaderboardRows = Array.isArray(fieldData.leaderboardRows) ? fieldData.leaderboardRows : [];
 
       if (leaderboardRows.length > 0) {
-        // Extract player IDs present in this week's tournament field
         const weeklyPlayerIds = leaderboardRows.map((row: { playerId: string }) => String(row.playerId));
 
-        // Fetch matching records from our newly updated 'golfers' table that are in the top 300
+        // Fetch matching records from 'golfers' table that are in top 300
         const { data: validDraftableGolfers, error: fetchError } = await supabase
           .from('golfers')
           .select('player_id, name, owgr_rank')
@@ -104,11 +107,11 @@ export async function GET(request: Request) {
         }
 
         if (validDraftableGolfers && validDraftableGolfers.length > 0) {
-          // Clear out the previous week's field table
+          // Clear out the previous week's field
           const { error: deleteError } = await supabase
             .from('field')
             .delete()
-            .neq('player_id', ''); // delete all rows
+            .neq('player_id', '');
 
           if (deleteError) {
             throw new Error(`Error clearing old field table: ${deleteError.message}`);
