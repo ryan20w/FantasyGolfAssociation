@@ -45,16 +45,28 @@ export async function GET(request: Request) {
     // Slice down to top 300
     const top300Raw = allRankings.slice(0, 300);
 
-    // Sanitize rank types for Supabase integer column requirements
+    // Sanitize name and rank types for Supabase column constraints
     const golfersToUpsert = top300Raw.map(
-      (player: { playerId: string; fullName: string; rank: string | number }) => {
+      (player: { 
+        playerId: string | number; 
+        fullName?: string; 
+        firstName?: string; 
+        lastName?: string; 
+        playerName?: string;
+        rank: string | number 
+      }) => {
+        const constructedName = player.fullName || 
+          (player.firstName && player.lastName ? `${player.firstName} ${player.lastName}`.trim() : null) || 
+          player.playerName || 
+          'Unknown Golfer';
+
         const parsedRank = typeof player.rank === 'number' 
           ? player.rank 
           : parseInt(String(player.rank), 10);
 
         return {
           player_id: String(player.playerId),
-          name: player.fullName,
+          name: constructedName,
           owgr_rank: isNaN(parsedRank) ? 999 : parsedRank,
           world_ranking: isNaN(parsedRank) ? 999 : parsedRank,
           updated_at: new Date().toISOString(),
@@ -94,7 +106,7 @@ export async function GET(request: Request) {
       const leaderboardRows = Array.isArray(fieldData.leaderboardRows) ? fieldData.leaderboardRows : [];
 
       if (leaderboardRows.length > 0) {
-        const weeklyPlayerIds = leaderboardRows.map((row: { playerId: string }) => String(row.playerId));
+        const weeklyPlayerIds = leaderboardRows.map((row: { playerId: string | number }) => String(row.playerId));
 
         // Fetch matching records from 'golfers' table that are in top 300
         const { data: validDraftableGolfers, error: fetchError } = await supabase
