@@ -42,37 +42,44 @@ export async function GET(request: Request) {
     const rankingsData = await rankingsResponse.json();
     const allRankings = Array.isArray(rankingsData.rankings) ? rankingsData.rankings : [];
 
-    // Slice down to top 300
+    // Helper to safely extract integer rank across various API response shapes
+    const parseRank = (rawRank: any): number => {
+      if (typeof rawRank === 'number' && !isNaN(rawRank)) return rawRank;
+      if (typeof rawRank === 'string') {
+        const parsed = parseInt(rawRank, 10);
+        if (!isNaN(parsed)) return parsed;
+      }
+      return 999;
+    };
+
+    // 1. Sort rankings array by actual rank ascending (1, 2, 3...)
+    allRankings.sort((a: any, b: any) => {
+      const rankA = parseRank(a.rank ?? a.rankNum ?? a.owgrRank ?? a.position);
+      const rankB = parseRank(b.rank ?? b.rankNum ?? b.owgrRank ?? b.position);
+      return rankA - rankB;
+    });
+
+    // 2. Take the actual top 300 players after sorting
     const top300Raw = allRankings.slice(0, 300);
 
-    // Sanitize name and rank types for Supabase column constraints
-    const golfersToUpsert = top300Raw.map(
-      (player: { 
-        playerId: string | number; 
-        fullName?: string; 
-        firstName?: string; 
-        lastName?: string; 
-        playerName?: string;
-        rank: string | number 
-      }) => {
-        const constructedName = player.fullName || 
-          (player.firstName && player.lastName ? `${player.firstName} ${player.lastName}`.trim() : null) || 
-          player.playerName || 
-          'Unknown Golfer';
+    // 3. Map sanitized values for Supabase
+    const golfersToUpsert = top300Raw.map((player: any) => {
+      const constructedName =
+        player.fullName ||
+        (player.firstName && player.lastName ? `${player.firstName} ${player.lastName}`.trim() : null) ||
+        player.playerName ||
+        'Unknown Golfer';
 
-        const parsedRank = typeof player.rank === 'number' 
-          ? player.rank 
-          : parseInt(String(player.rank), 10);
+      const finalRank = parseRank(player.rank ?? player.rankNum ?? player.owgrRank ?? player.position);
 
-        return {
-          player_id: String(player.playerId),
-          name: constructedName,
-          owgr_rank: isNaN(parsedRank) ? 999 : parsedRank,
-          world_ranking: isNaN(parsedRank) ? 999 : parsedRank,
-          updated_at: new Date().toISOString(),
-        };
-      }
-    );
+      return {
+        player_id: String(player.playerId),
+        name: constructedName,
+        owgr_rank: finalRank,
+        world_ranking: finalRank,
+        updated_at: new Date().toISOString(),
+      };
+    });
 
     if (golfersToUpsert.length > 0) {
       const { error: golferError } = await supabase
